@@ -6,10 +6,7 @@ import { cn } from '@/lib/utils'
 import { LayoutDashboard, TrendingUp, Settings, BarChart3 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/app', icon: LayoutDashboard },
-  { name: 'Trading', href: '/app/trading', icon: TrendingUp },
-  { name: 'Analytics', href: '/app/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/app/settings', icon: Settings },
+  { name: 'Trades', href: '/app', icon: LayoutDashboard },
 ]
 
 export function Sidebar() {

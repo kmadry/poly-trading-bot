@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { login } from '@/actions/auth-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +22,28 @@ type LoginFormData = z.infer<typeof loginSchema>
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const message = searchParams.get('message')
+    const errorParam = searchParams.get('error_description')
+    
+    if (message) {
+      setSuccessMessage(message)
+    }
+    
+    if (errorParam) {
+      const decodedError = decodeURIComponent(errorParam)
+      if (decodedError.includes('expired')) {
+        setError('Link resetujący wygasł. Poproś o nowy link.')
+      } else if (decodedError.includes('invalid')) {
+        setError('Link resetujący jest nieprawidłowy. Poproś o nowy link.')
+      } else {
+        setError(decodedError)
+      }
+    }
+  }, [searchParams])
 
   const {
     register,
@@ -71,6 +94,12 @@ export function LoginForm() {
         />
         <FormMessage>{errors.password?.message}</FormMessage>
       </FormField>
+
+      {successMessage && (
+        <div className="rounded-md bg-green-50 p-3">
+          <p className="text-sm text-green-800">{successMessage}</p>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md bg-destructive/15 p-3">

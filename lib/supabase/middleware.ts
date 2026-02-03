@@ -39,8 +39,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Jeśli user jest zalogowany i próbuje dostać się do /login lub /register - redirect do /app
+  // Ale pozwól na dostęp do /reset-password/confirm (potrzebne do zmiany hasła)
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
-    return NextResponse.redirect(new URL('/app', request.url))
+    if (!request.nextUrl.pathname.startsWith('/reset-password')) {
+      return NextResponse.redirect(new URL('/app', request.url))
+    }
   }
 
   return response
