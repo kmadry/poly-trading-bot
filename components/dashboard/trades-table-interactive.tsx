@@ -44,10 +44,10 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
   const [sessionFilter, setSessionFilter] = useState('')
   
   // Get unique values for multiselect
-  const uniqueTypes = useMemo(() => Array.from(new Set(trades.map(t => t.type).filter(Boolean))), [trades])
-  const uniqueOutcomes = useMemo(() => Array.from(new Set(trades.map(t => t.outcome).filter(Boolean))), [trades])
-  const uniqueBots = useMemo(() => Array.from(new Set(trades.map(t => t.bot_instance).filter(Boolean))), [trades])
-  const uniqueResults = useMemo(() => Array.from(new Set(trades.map(t => t.result).filter(Boolean))), [trades])
+  const uniqueTypes = useMemo(() => Array.from(new Set(trades.map(t => t.type).filter(Boolean))) as string[], [trades])
+  const uniqueOutcomes = useMemo(() => Array.from(new Set(trades.map(t => t.outcome).filter((v): v is string => v !== null && v !== undefined))), [trades])
+  const uniqueBots = useMemo(() => Array.from(new Set(trades.map(t => t.bot_instance).filter(Boolean))) as string[], [trades])
+  const uniqueResults = useMemo(() => Array.from(new Set(trades.map(t => t.result).filter((v): v is string => v !== null && v !== undefined))), [trades])
 
   const getTypeColor = (type: string) => {
     switch (type.toUpperCase()) {

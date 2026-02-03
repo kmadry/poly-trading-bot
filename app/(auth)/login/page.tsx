@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { LoginForm } from '@/components/auth/login-form'
 import { RecoveryHandler } from '@/components/auth/recovery-handler'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -5,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function LoginPage() {
   return (
     <>
-      <RecoveryHandler />
+      <Suspense fallback={null}>
+        <RecoveryHandler />
+      </Suspense>
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Logowanie</CardTitle>
@@ -14,7 +17,9 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <Suspense fallback={<div className="text-center py-4">Ładowanie...</div>}>
+            <LoginForm />
+          </Suspense>
         </CardContent>
       </Card>
     </>
