@@ -586,7 +586,7 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
                 P&L {sortField === 'pnl' && <ArrowUpDown className="h-3 w-3" />}
               </div>
             </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('roi')}>
+            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '75px', flexGrow: 1}} onClick={() => handleSort('roi')}>
               <div className="flex items-center gap-1 justify-center">
                 ROI % {sortField === 'roi' && <ArrowUpDown className="h-3 w-3" />}
               </div>
@@ -658,7 +658,7 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
                     </span>
                   ) : '-'}
                 </div>
-                <div className="p-2 text-center font-mono font-semibold text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
+                <div className="p-2 text-center font-mono font-semibold text-xs" style={{flexBasis: '75px', flexGrow: 1}}>
                   {trade.pnl !== null && trade.size !== null && trade.size !== 0 ? (
                     <span className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
                       {((trade.pnl / trade.size) * 100).toFixed(2)}%

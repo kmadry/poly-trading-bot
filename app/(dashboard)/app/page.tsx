@@ -2,12 +2,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TrendingUp, DollarSign, Activity, XCircle } from 'lucide-react'
 import { getTrades, getTradeStats } from '@/lib/db/trades'
 import { TradesTableInteractive } from '@/components/dashboard/trades-table-interactive'
+import { Trade, TradeStats } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const trades = await getTrades() // Pobierz wszystkie (bez limitu)
-  const stats = await getTradeStats()
+  let trades: Trade[] = []
+  let stats: TradeStats = {
+    total: 0,
+    totalBuys: 0,
+    totalSells: 0,
+    totalSkips: 0,
+    totalPnL: 0,
+    avgPrice: 0,
+    winRate: 0
+  }
+
+  try {
+    trades = await getTrades() // Pobierz wszystkie (bez limitu)
+    stats = await getTradeStats()
+  } catch (error) {
+    console.error('Error loading dashboard data:', error)
+    // Return empty state if error occurs
+  }
 
   const statsCards = [
     {
