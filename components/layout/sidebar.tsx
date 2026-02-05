@@ -13,8 +13,8 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-muted/10">
-      <div className="flex h-16 items-center border-b px-6">
+    <div className="flex h-full w-64 flex-col border-r bg-muted/10 dark:bg-muted/5">
+      <div className="flex h-16 items-center border-b px-6 bg-background">
         <Link href="/app" className="flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold">Poly Trading Bot</span>
