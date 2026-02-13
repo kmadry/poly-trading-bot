@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, TrendingUp, Settings, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Clock } from 'lucide-react'
 
 const navigation = [
   { name: 'Trades', href: '/app', icon: LayoutDashboard },
+  { name: 'Market Sessions', href: '/app/sessions', icon: Clock },
 ]
 
 export function Sidebar() {

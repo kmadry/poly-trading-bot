@@ -31,3 +31,28 @@ export interface TradeStats {
   avgPrice: number
   winRate: number
 }
+
+export interface MarketSession {
+  id: number
+  bot_instance: string
+  market_id: string
+  market_slug: string
+  market_question: string | null
+  series_slug: string | null
+  session_start: string
+  session_end: string | null
+  market_start_time: string | null
+  market_end_time: string | null
+  total_entries: number | null
+  total_exits: number | null
+  total_skips: number | null
+  total_pnl: number | null
+  initial_yes_price: number | null
+  initial_no_price: number | null
+  initial_spread: number | null
+  final_outcome: string | null
+  final_yes_price: number | null
+  final_no_price: number | null
+  strategy_config: Record<string, any> | null
+  metadata: Record<string, any> | null
+}

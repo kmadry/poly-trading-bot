@@ -1,14 +1,14 @@
 'use client'
 
 import { Trade } from '@/types/database'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Filter, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Filter, X, Columns3, RotateCcw } from 'lucide-react'
 
 interface TradesTableInteractiveProps {
   trades: Trade[]
@@ -16,6 +16,28 @@ interface TradesTableInteractiveProps {
 
 type SortField = 'id' | 'timestamp' | 'type' | 'price' | 'pnl' | 'roi' | 'session_id' | 'market' | 'outcome' | 'size' | 'shares' | 'result' | 'order_id' | 'bot_instance'
 type SortDirection = 'asc' | 'desc'
+
+const DEFAULT_VISIBLE_COLUMNS = {
+  id: true,
+  botInstance: true,
+  sessionId: true,
+  timestamp: true,
+  marketId: false,
+  marketSlug: false,
+  marketQuestion: true,
+  marketEndTime: false,
+  seriesSlug: false,
+  type: true,
+  outcome: true,
+  price: true,
+  size: true,
+  shares: true,
+  orderId: true,
+  pnl: true,
+  roi: true,
+  result: true,
+  metadata: true
+}
 
 export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) {
   // Basic filters
@@ -27,6 +49,27 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
   
   // Advanced filters panel
   const [showFilters, setShowFilters] = useState(false)
+  const [showColumns, setShowColumns] = useState(false)
+  
+  // Column visibility - load from localStorage
+  const [visibleColumns, setVisibleColumns] = useState(DEFAULT_VISIBLE_COLUMNS)
+  
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('tradesVisibleColumns')
+    if (saved) {
+      try {
+        setVisibleColumns(JSON.parse(saved))
+      } catch (e) {
+        console.error('Error loading saved columns:', e)
+      }
+    }
+  }, [])
+  
+  // Save to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('tradesVisibleColumns', JSON.stringify(visibleColumns))
+  }, [visibleColumns])
   
   // Multiselect filters
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
@@ -279,6 +322,30 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
     selectedResults.length > 0 || sessionFilter || priceRange.min || priceRange.max || 
     sizeRange.min || sizeRange.max || sharesRange.min || sharesRange.max || 
     timeRange.from || timeRange.to
+  
+  const toggleColumn = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }))
+  }
+  
+  const selectAllColumns = () => {
+    const allTrue = Object.keys(visibleColumns).reduce((acc, key) => ({
+      ...acc,
+      [key]: true
+    }), {} as typeof visibleColumns)
+    setVisibleColumns(allTrue)
+  }
+  
+  const deselectAllColumns = () => {
+    const allFalse = Object.keys(visibleColumns).reduce((acc, key) => ({
+      ...acc,
+      [key]: key === 'id' // tylko ID zostaje true
+    }), {} as typeof visibleColumns)
+    setVisibleColumns(allFalse)
+  }
+  
+  const restoreDefaultColumns = () => {
+    setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)
+  }
 
   return (
     <div className="space-y-4">
@@ -296,6 +363,15 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
           </span>}
         </Button>
         
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowColumns(!showColumns)}
+        >
+          <Columns3 className="h-4 w-4 mr-2" />
+          Kolumny
+        </Button>
+        
         <Input
           placeholder="Szukaj (market, bot, ID)..."
           value={searchTerm}
@@ -310,6 +386,130 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
           Wyniki: {filteredTrades.length} / {trades.length}
         </div>
       </div>
+
+      {/* Panel kolumn */}
+      {showColumns && (
+        <div className="border rounded-lg p-4 bg-muted/20">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Columns3 className="h-4 w-4" />
+              Widoczne kolumny
+            </h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={restoreDefaultColumns}>
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Przywróć domyślne
+              </Button>
+              <Button variant="outline" size="sm" onClick={selectAllColumns}>
+                Zaznacz wszystkie
+              </Button>
+              <Button variant="outline" size="sm" onClick={deselectAllColumns}>
+                Odznacz wszystkie
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowColumns(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 max-h-96 overflow-y-auto">
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-id" checked={visibleColumns.id} disabled />
+              <label htmlFor="col-id" className="text-sm cursor-not-allowed opacity-50">ID (zawsze)</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-botInstance" checked={visibleColumns.botInstance} onCheckedChange={() => toggleColumn('botInstance')} />
+              <label htmlFor="col-botInstance" className="text-sm cursor-pointer">Bot Instance</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-sessionId" checked={visibleColumns.sessionId} onCheckedChange={() => toggleColumn('sessionId')} />
+              <label htmlFor="col-sessionId" className="text-sm cursor-pointer">Session ID</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-timestamp" checked={visibleColumns.timestamp} onCheckedChange={() => toggleColumn('timestamp')} />
+              <label htmlFor="col-timestamp" className="text-sm cursor-pointer">Timestamp</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-marketId" checked={visibleColumns.marketId} onCheckedChange={() => toggleColumn('marketId')} />
+              <label htmlFor="col-marketId" className="text-sm cursor-pointer">Market ID</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-marketSlug" checked={visibleColumns.marketSlug} onCheckedChange={() => toggleColumn('marketSlug')} />
+              <label htmlFor="col-marketSlug" className="text-sm cursor-pointer">Market Slug</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-marketQuestion" checked={visibleColumns.marketQuestion} onCheckedChange={() => toggleColumn('marketQuestion')} />
+              <label htmlFor="col-marketQuestion" className="text-sm cursor-pointer">Market Question</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-marketEndTime" checked={visibleColumns.marketEndTime} onCheckedChange={() => toggleColumn('marketEndTime')} />
+              <label htmlFor="col-marketEndTime" className="text-sm cursor-pointer">Market End Time</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-seriesSlug" checked={visibleColumns.seriesSlug} onCheckedChange={() => toggleColumn('seriesSlug')} />
+              <label htmlFor="col-seriesSlug" className="text-sm cursor-pointer">Series Slug</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-type" checked={visibleColumns.type} onCheckedChange={() => toggleColumn('type')} />
+              <label htmlFor="col-type" className="text-sm cursor-pointer">Type</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-outcome" checked={visibleColumns.outcome} onCheckedChange={() => toggleColumn('outcome')} />
+              <label htmlFor="col-outcome" className="text-sm cursor-pointer">Outcome</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-price" checked={visibleColumns.price} onCheckedChange={() => toggleColumn('price')} />
+              <label htmlFor="col-price" className="text-sm cursor-pointer">Price</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-size" checked={visibleColumns.size} onCheckedChange={() => toggleColumn('size')} />
+              <label htmlFor="col-size" className="text-sm cursor-pointer">Size</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-shares" checked={visibleColumns.shares} onCheckedChange={() => toggleColumn('shares')} />
+              <label htmlFor="col-shares" className="text-sm cursor-pointer">Shares</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-orderId" checked={visibleColumns.orderId} onCheckedChange={() => toggleColumn('orderId')} />
+              <label htmlFor="col-orderId" className="text-sm cursor-pointer">Order ID</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-pnl" checked={visibleColumns.pnl} onCheckedChange={() => toggleColumn('pnl')} />
+              <label htmlFor="col-pnl" className="text-sm cursor-pointer">P&L</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-roi" checked={visibleColumns.roi} onCheckedChange={() => toggleColumn('roi')} />
+              <label htmlFor="col-roi" className="text-sm cursor-pointer">ROI %</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-result" checked={visibleColumns.result} onCheckedChange={() => toggleColumn('result')} />
+              <label htmlFor="col-result" className="text-sm cursor-pointer">Result</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="col-metadata" checked={visibleColumns.metadata} onCheckedChange={() => toggleColumn('metadata')} />
+              <label htmlFor="col-metadata" className="text-sm cursor-pointer">Metadata</label>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Panel filtrów */}
       {showFilters && (
@@ -541,165 +741,266 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
         <div className="min-w-full text-sm">
           {/* Header */}
           <div className="flex items-center border-b bg-muted/50">
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}} onClick={() => handleSort('id')}>
-              <div className="flex items-center gap-1 justify-center">
-                ID {sortField === 'id' && <ArrowUpDown className="h-3 w-3" />}
+            {visibleColumns.id && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}} onClick={() => handleSort('id')}>
+                <div className="flex items-center gap-1 justify-center">
+                  ID {sortField === 'id' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}} onClick={() => handleSort('session_id')}>
-              <div className="flex items-center gap-1 justify-center">
-                Session {sortField === 'session_id' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.botInstance && (
+              <div className="p-2 text-left font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '180px', flexGrow: 1, flexShrink: 1}} onClick={() => handleSort('bot_instance')}>
+                <div className="flex items-center gap-1">
+                  Bot Instance {sortField === 'bot_instance' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '85px', flexGrow: 0, flexShrink: 0}} onClick={() => handleSort('type')}>
-              <div className="flex items-center gap-1 justify-center">
-                Type {sortField === 'type' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.sessionId && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}} onClick={() => handleSort('session_id')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Session {sortField === 'session_id' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-left font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}} onClick={() => handleSort('market')}>
-              <div className="flex items-center gap-1">
-                Market {sortField === 'market' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.timestamp && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '125px', flexGrow: 1}} onClick={() => handleSort('timestamp')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Timestamp {sortField === 'timestamp' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '80px', flexGrow: 1}} onClick={() => handleSort('outcome')}>
-              <div className="flex items-center gap-1 justify-center">
-                Outcome {sortField === 'outcome' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.marketId && (
+              <div className="p-2 text-left font-medium" style={{flexBasis: '120px', flexGrow: 0, flexShrink: 1}}>
+                Market ID
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('price')}>
-              <div className="flex items-center gap-1 justify-center">
-                Price {sortField === 'price' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.marketSlug && (
+              <div className="p-2 text-left font-medium" style={{flexBasis: '180px', flexGrow: 0, flexShrink: 1}}>
+                Market Slug
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('size')}>
-              <div className="flex items-center gap-1 justify-center">
-                Size {sortField === 'size' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.marketQuestion && (
+              <div className="p-2 text-left font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '250px', flexGrow: 1, flexShrink: 1}} onClick={() => handleSort('market')}>
+                <div className="flex items-center gap-1">
+                  Market Question {sortField === 'market' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('shares')}>
-              <div className="flex items-center gap-1 justify-center">
-                Shares {sortField === 'shares' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.marketEndTime && (
+              <div className="p-2 text-center font-medium" style={{flexBasis: '140px', flexGrow: 0}}>
+                Market End
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('pnl')}>
-              <div className="flex items-center gap-1 justify-center">
-                P&L {sortField === 'pnl' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.seriesSlug && (
+              <div className="p-2 text-left font-medium" style={{flexBasis: '150px', flexGrow: 0, flexShrink: 1}}>
+                Series
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '75px', flexGrow: 1}} onClick={() => handleSort('roi')}>
-              <div className="flex items-center gap-1 justify-center">
-                ROI % {sortField === 'roi' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.type && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '85px', flexGrow: 0, flexShrink: 0}} onClick={() => handleSort('type')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Type {sortField === 'type' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '80px', flexGrow: 1}} onClick={() => handleSort('result')}>
-              <div className="flex items-center gap-1 justify-center">
-                Result {sortField === 'result' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.outcome && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '80px', flexGrow: 1}} onClick={() => handleSort('outcome')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Outcome {sortField === 'outcome' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}} onClick={() => handleSort('order_id')}>
-              <div className="flex items-center gap-1 justify-center">
-                Order ID {sortField === 'order_id' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.price && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('price')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Price {sortField === 'price' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '125px', flexGrow: 1}} onClick={() => handleSort('timestamp')}>
-              <div className="flex items-center gap-1 justify-center">
-                Time {sortField === 'timestamp' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.size && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('size')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Size {sortField === 'size' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-left font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}} onClick={() => handleSort('bot_instance')}>
-              <div className="flex items-center gap-1">
-                Bot {sortField === 'bot_instance' && <ArrowUpDown className="h-3 w-3" />}
+            )}
+            {visibleColumns.shares && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('shares')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Shares {sortField === 'shares' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
               </div>
-            </div>
-            <div className="p-2 text-left font-medium" style={{flexBasis: '200px', flexGrow: 0, flexShrink: 0}}>Metadata</div>
+            )}
+            {visibleColumns.orderId && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}} onClick={() => handleSort('order_id')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Order ID {sortField === 'order_id' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </div>
+            )}
+            {visibleColumns.pnl && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '70px', flexGrow: 1}} onClick={() => handleSort('pnl')}>
+                <div className="flex items-center gap-1 justify-center">
+                  P&L {sortField === 'pnl' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </div>
+            )}
+            {visibleColumns.roi && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '75px', flexGrow: 1}} onClick={() => handleSort('roi')}>
+                <div className="flex items-center gap-1 justify-center">
+                  ROI % {sortField === 'roi' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </div>
+            )}
+            {visibleColumns.result && (
+              <div className="p-2 text-center font-medium cursor-pointer hover:bg-muted" style={{flexBasis: '80px', flexGrow: 1}} onClick={() => handleSort('result')}>
+                <div className="flex items-center gap-1 justify-center">
+                  Result {sortField === 'result' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </div>
+            )}
+            {visibleColumns.metadata && (
+              <div className="p-2 text-left font-medium" style={{flexBasis: '200px', flexGrow: 0, flexShrink: 0}}>Metadata</div>
+            )}
           </div>
           
           {/* Body */}
           <div>
             {paginatedTrades.map((trade) => (
               <div key={trade.id} className="flex items-center border-b hover:bg-muted/50 transition-colors">
-                <div className="p-2 text-center font-mono text-xs text-muted-foreground" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}}>
-                  #{trade.id}
-                </div>
-                <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}}>
-                  {trade.session_id || '-'}
-                </div>
-                <div className="p-2 flex items-center justify-center" style={{flexBasis: '85px', flexGrow: 0, flexShrink: 0}}>
-                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getTypeColor(trade.type)}`}>
-                    {trade.type}
-                  </span>
-                </div>
-                <div className="p-2 overflow-hidden" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}}>
-                  <div className="truncate font-medium text-xs" title={trade.market_question || trade.market_slug}>
-                    {trade.market_question || trade.market_slug}
+                {visibleColumns.id && (
+                  <div className="p-2 text-center font-mono text-xs text-muted-foreground" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}}>
+                    #{trade.id}
                   </div>
-                  {trade.series_slug && (
-                    <div className="text-xs text-muted-foreground/70 truncate" title={trade.series_slug}>
-                      Series: {trade.series_slug}
+                )}
+                {visibleColumns.botInstance && (
+                  <div className="p-2 overflow-hidden" style={{flexBasis: '180px', flexGrow: 1, flexShrink: 1}}>
+                    <div className="text-xs text-muted-foreground truncate" title={trade.bot_instance}>
+                      {trade.bot_instance}
                     </div>
-                  )}
-                </div>
-                <div className="p-2 flex items-center justify-center" style={{flexBasis: '80px', flexGrow: 1}}>
-                  {getOutcomeBadge(trade.outcome)}
-                </div>
-                <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
-                  {trade.price ? `$${trade.price.toFixed(4)}` : '-'}
-                </div>
-                <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
-                  {trade.size ? `$${trade.size.toFixed(2)}` : '-'}
-                </div>
-                <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
-                  {trade.shares ? trade.shares.toFixed(2) : '-'}
-                </div>
-                <div className="p-2 text-center font-mono font-semibold text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
-                  {trade.pnl !== null ? (
-                    <span className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                    </span>
-                  ) : '-'}
-                </div>
-                <div className="p-2 text-center font-mono font-semibold text-xs" style={{flexBasis: '75px', flexGrow: 1}}>
-                  {trade.pnl !== null && trade.size !== null && trade.size !== 0 ? (
-                    <span className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      {((trade.pnl / trade.size) * 100).toFixed(2)}%
-                    </span>
-                  ) : '-'}
-                </div>
-                <div className="p-2 text-center text-xs" style={{flexBasis: '80px', flexGrow: 1}}>
-                  {trade.result || '-'}
-                </div>
-                <div className="p-2 text-center font-mono text-xs overflow-hidden" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}}>
-                  {trade.order_id ? (
-                    <div className="truncate" title={trade.order_id}>
-                      {trade.order_id}
-                    </div>
-                  ) : '-'}
-                </div>
-                <div className="p-2 text-center text-xs text-muted-foreground whitespace-nowrap" style={{flexBasis: '125px', flexGrow: 1}}>
-                  {format(new Date(trade.timestamp), 'HH:mm dd-MM-yyyy')}
-                </div>
-                <div className="p-2 overflow-hidden" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}}>
-                  <div className="text-xs text-muted-foreground truncate" title={trade.bot_instance}>
-                    {trade.bot_instance}
                   </div>
-                </div>
-                <div className="p-2 text-xs" style={{flexBasis: '200px', flexGrow: 0, flexShrink: 0}}>
-                  {trade.metadata ? (
-                    <div>
-                      <div>{formatMetadataInline(trade.metadata)}</div>
-                      {trade.metadata.skip_reasons && trade.metadata.skip_reasons.length > 1 && (
-                        <details className="cursor-pointer mt-1">
-                          <summary className="text-primary hover:underline text-xs">
-                            Zobacz wszystkie
-                          </summary>
-                          <div className="-ml-[400px] mt-1 p-2 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm max-h-96 overflow-auto flex justify-end" style={{maxWidth: '520px'}}>
-                            {formatMetadataPopup(trade.metadata)}
-                          </div>
-                        </details>
-                      )}
+                )}
+                {visibleColumns.sessionId && (
+                  <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 0, flexShrink: 0}}>
+                    {trade.session_id || '-'}
+                  </div>
+                )}
+                {visibleColumns.timestamp && (
+                  <div className="p-2 text-center text-xs text-muted-foreground whitespace-nowrap" style={{flexBasis: '125px', flexGrow: 1}}>
+                    {format(new Date(trade.timestamp), 'HH:mm dd-MM-yyyy')}
+                  </div>
+                )}
+                {visibleColumns.marketId && (
+                  <div className="p-2 overflow-hidden" style={{flexBasis: '120px', flexGrow: 0, flexShrink: 1}}>
+                    <div className="truncate text-xs font-mono" title={trade.market_id || ''}>
+                      {trade.market_id || '-'}
                     </div>
-                  ) : '-'}
-                </div>
+                  </div>
+                )}
+                {visibleColumns.marketSlug && (
+                  <div className="p-2 overflow-hidden" style={{flexBasis: '180px', flexGrow: 0, flexShrink: 1}}>
+                    <div className="truncate text-xs" title={trade.market_slug}>
+                      {trade.market_slug}
+                    </div>
+                  </div>
+                )}
+                {visibleColumns.marketQuestion && (
+                  <div className="p-2 overflow-hidden" style={{flexBasis: '250px', flexGrow: 1, flexShrink: 1}}>
+                    <div className="truncate font-medium text-xs" title={trade.market_question || trade.market_slug}>
+                      {trade.market_question || trade.market_slug}
+                    </div>
+                  </div>
+                )}
+                {visibleColumns.marketEndTime && (
+                  <div className="p-2 text-center text-xs text-muted-foreground whitespace-nowrap" style={{flexBasis: '140px', flexGrow: 0}}>
+                    {trade.market_end_time ? format(new Date(trade.market_end_time), 'HH:mm dd-MM-yyyy') : '-'}
+                  </div>
+                )}
+                {visibleColumns.seriesSlug && (
+                  <div className="p-2 overflow-hidden" style={{flexBasis: '150px', flexGrow: 0, flexShrink: 1}}>
+                    <div className="text-xs text-muted-foreground/70 truncate" title={trade.series_slug || ''}>
+                      {trade.series_slug || '-'}
+                    </div>
+                  </div>
+                )}
+                {visibleColumns.type && (
+                  <div className="p-2 flex items-center justify-center" style={{flexBasis: '85px', flexGrow: 0, flexShrink: 0}}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getTypeColor(trade.type)}`}>
+                      {trade.type}
+                    </span>
+                  </div>
+                )}
+                {visibleColumns.outcome && (
+                  <div className="p-2 flex items-center justify-center" style={{flexBasis: '80px', flexGrow: 1}}>
+                    {getOutcomeBadge(trade.outcome)}
+                  </div>
+                )}
+                {visibleColumns.price && (
+                  <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
+                    {trade.price ? `$${trade.price.toFixed(4)}` : '-'}
+                  </div>
+                )}
+                {visibleColumns.size && (
+                  <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
+                    {trade.size ? `$${trade.size.toFixed(2)}` : '-'}
+                  </div>
+                )}
+                {visibleColumns.shares && (
+                  <div className="p-2 text-center font-mono text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
+                    {trade.shares ? trade.shares.toFixed(2) : '-'}
+                  </div>
+                )}
+                {visibleColumns.orderId && (
+                  <div className="p-2 text-center font-mono text-xs overflow-hidden" style={{flexBasis: '200px', flexGrow: 1, flexShrink: 1}}>
+                    {trade.order_id ? (
+                      <div className="truncate" title={trade.order_id}>
+                        {trade.order_id}
+                      </div>
+                    ) : '-'}
+                  </div>
+                )}
+                {visibleColumns.pnl && (
+                  <div className="p-2 text-center font-mono font-semibold text-xs" style={{flexBasis: '70px', flexGrow: 1}}>
+                    {trade.pnl !== null ? (
+                      <span className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                      </span>
+                    ) : '-'}
+                  </div>
+                )}
+                {visibleColumns.roi && (
+                  <div className="p-2 text-center font-mono font-semibold text-xs" style={{flexBasis: '75px', flexGrow: 1}}>
+                    {trade.pnl !== null && trade.size !== null && trade.size !== 0 ? (
+                      <span className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {((trade.pnl / trade.size) * 100).toFixed(2)}%
+                      </span>
+                    ) : '-'}
+                  </div>
+                )}
+                {visibleColumns.result && (
+                  <div className="p-2 text-center text-xs" style={{flexBasis: '80px', flexGrow: 1}}>
+                    {trade.result || '-'}
+                  </div>
+                )}
+                {visibleColumns.metadata && (
+                  <div className="p-2 text-xs" style={{flexBasis: '200px', flexGrow: 0, flexShrink: 0}}>
+                    {trade.metadata ? (
+                      <div>
+                        <div>{formatMetadataInline(trade.metadata)}</div>
+                        {trade.metadata.skip_reasons && trade.metadata.skip_reasons.length > 1 && (
+                          <details className="cursor-pointer mt-1">
+                            <summary className="text-primary hover:underline text-xs">
+                              Zobacz wszystkie
+                            </summary>
+                            <div className="-ml-[400px] mt-1 p-2 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm max-h-96 overflow-auto flex justify-end" style={{maxWidth: '520px'}}>
+                              {formatMetadataPopup(trade.metadata)}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    ) : '-'}
+                  </div>
+                )}
               </div>
             ))}
           </div>
