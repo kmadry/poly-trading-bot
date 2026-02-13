@@ -158,11 +158,21 @@ export function TradesTableInteractive({ trades }: TradesTableInteractiveProps) 
       <table className="text-xs border-collapse">
         <tbody>
           {metadata.skip_reasons.map((reason: any, idx: number) => {
+            // Handle both string and object reasons
+            if (typeof reason === 'string') {
+              return (
+                <tr key={idx}>
+                  <td className="px-1 text-muted-foreground text-center" style={{width: '40px', minWidth: '40px'}}>{idx + 1}</td>
+                  <td className="px-2 font-medium text-yellow-700 dark:text-yellow-400" colSpan={3}>{reason}</td>
+                </tr>
+              )
+            }
+            
             const details = reason.details || {}
             const actualValue = details.actual_price || details.actual_spread || 'N/A'
             
             // Format readable type name
-            const typeName = reason.type
+            const typeName = (reason.type || 'Unknown')
               .replace(/_/g, ' ')
               .replace(/\b\w/g, (l: string) => l.toUpperCase())
             
