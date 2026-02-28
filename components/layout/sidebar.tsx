@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, TrendingUp, Clock, List } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Clock, List, Bot, Cpu } from 'lucide-react'
 
 const navigation = [
   { name: 'Trades', href: '/app', icon: LayoutDashboard },
   { name: 'Market Sessions', href: '/app/sessions', icon: Clock },
+  { name: 'Boty', href: '/app/boty', icon: Bot },
+  { name: 'Boty 2.0', href: '/app/boty-2', icon: Cpu },
   { name: 'All', href: '/app/all', icon: List },
 ]
 
